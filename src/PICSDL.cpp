@@ -381,7 +381,8 @@ void Diagnostics(string path) {
         << ionsS.size() << '\t' 
         << sputter_born  << '\t' 
         << sputter_absorbed << '\t' 
-        << sputter_away << endl;
+        << sputter_away << '\t'
+        << (float)sputter_away / (float)beam_born << endl;
     myfile.close();
 
     myfile.open("diag/diagV.txt");
