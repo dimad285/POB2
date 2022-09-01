@@ -1,0 +1,43 @@
+Domain
+{
+screenW = 720
+screenH = 720
+
+dt = 1e-10
+
+X = 0.02
+R = 0.0016
+
+T = 100000
+EB = 1000
+YB = 0.0008
+RB = 0.0008
+dtn = 1
+ndt = 1
+delta = 0.3
+
+control = 0
+diagnostics = 1
+}
+
+Boundary
+{
+X1 = 0.02
+R1 = 0
+X2 = 0.02
+R2 = 0.0016
+A = 26
+T = 40000
+}
+
+Boundary
+{
+X1 = 0
+R1 = 0.0016
+X2 = 0.02
+R2 = 0.0016
+A = 26
+T = 40000
+}
+
+/
