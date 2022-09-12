@@ -86,18 +86,28 @@ public:
     double sin2a = 0;
     double cos2a = 0;
     int A;
+    float conductivity = 1;
     double T;
-    double diag[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    double diposition[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    double sputtering[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    double temperature[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    double coords[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    double dx = 0;
+    double dy = 0;
     double L;
+    double dL = 0;
     double Lx;
     double Ly;
+    double Lx_1 = 0;
 
     Boundary(double X1, double Y1, double X2, double Y2, int a, double t);
     ~Boundary();
     void Sputter(double E, double X, double Y, double phi);
+    void TermalConduction();
 
 
 private:
+    double M_1 = 0;
 
 };
 
@@ -109,7 +119,8 @@ Boundary::Boundary(double X1, double Y1, double X2, double Y2, int a, double t)
     y2 = Y2;
     A = a;
     T = t;
-    alpha = acos((x2 - x1) / sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)));
+    //alpha = acos((x2 - x1) / sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)));
+    alpha = atan((y2 - y1) / (x2 - x1));
     //alpha = abs(alpha) - (sgn(alpha) - 1) * pi / 4;
     //cout << alpha << endl;
     sina = sin(alpha);
@@ -117,9 +128,14 @@ Boundary::Boundary(double X1, double Y1, double X2, double Y2, int a, double t)
     sin2a = sin(2 * alpha);
     cos2a = cos(2 * alpha);
 
-    Lx = abs(x2 - x1);
-    Ly = abs(y2 - y1);
+    dx = x1 - x2;
+    dy = y1 - y2;
+    Lx = abs(dx);
+    Ly = abs(dy);
     L = sqrt(Lx * Lx + Ly * Ly);
+    dL = L / 10;
+    Lx_1 = 1 / Lx;
+    M_1 = 1 / (A * mh);
 }
 
 Boundary::~Boundary()
@@ -174,6 +190,7 @@ private:
     double sin2g = 0;
     double cosg = 0;
     double sing = 0;
+
 };
 
 vector<Species> ions;
@@ -181,27 +198,31 @@ vector<Species> ionsS;
 
 void generateParticlesVector(vector<Species>& part, int n, double X1, double X2, double Y1, double Y2, double Vx, double Vy, int a, double T = 0, double phi = 0) {
 
-    double x, y, sigma, vx, vy, dvx, dvy;
+    double x, y;
+        //sigma, 
+        //vx, vy;
+        //dvx, dvy;
 
-    sigma = sqrt(kb * T / (a * mh));
+    //sigma = sqrt(kb * T / (a * mh));
     
     //default_random_engine e(seed);
 
     for (int i = 0; i < n; i++)
     {
-        if (T > 0)
+        /*if (T > 0)
         {
             
             normal_distribution<double> distribution(0, sigma);
             dvx = distribution(rnd);
             dvy = distribution(rnd);// hernya
-        }
-        else { dvx = dvy = 0; }
+        }*/
+        //else { dvx = dvy = 0; }
+
         x = X1 + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (X2 - X1)));
         y = Y1 + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (Y2 - Y1)));
-        vx = Vx;// +dvx;
-        vy = Vy + sin(epsilon - phi/2 + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (phi))))*VB;
-        Species p = Species(1, x, y, vx, vy, a*mh);
+        //vx = Vx;// +dvx;
+        //vy = Vy;// +sin(epsilon - phi / 2 + static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (phi)))) * VB;
+        Species p = Species(1, x, y, VX, VY, a*mh);
         part.push_back(p);
         beam_born++;
     }
@@ -209,7 +230,7 @@ void generateParticlesVector(vector<Species>& part, int n, double X1, double X2,
 
 void Boundary::Sputter(double E, double X, double Y, double phi) {
 
-    double x, y, meanV, vx, vy, gama, v, s;
+    double meanV, vx, vy, gama, v, s;
     int J, n;
     double teta = abs(abs(alpha - phi) - pi/2);
 
@@ -224,26 +245,38 @@ void Boundary::Sputter(double E, double X, double Y, double phi) {
   
     if (b < a) {
 
-        meanV = sqrt(2 * kb * T / (A * mh));
-        normal_distribution<double> angleDist(pi/2 * sgn(phi - alpha), 0.6);
+        //int g = (X - x1) * Lx_1 * 10;
+        //if (g > 9) g = 9; else if (g == -2147483648) g = 0;
+        //cout << g << endl;
+        //sputtering[g]+=n;
+
+        meanV = sqrt(2 * kb * T * M_1);
+        normal_distribution<double> angleDist(pi*0.5 * sgn(phi - alpha), 0.6);
         gama = alpha - angleDist(rnd);//alpha - static_cast <double> (rand()) / (static_cast <double> (RAND_MAX / (pi))) * sgn(phi - alpha); //*sgn(teta)
         //cout << gama << endl;
         chi_squared_distribution<double> distribution(3);
 
         for (int i = 0; i < n; i++)
         {
-            x = X;
-            y = Y;
             v = distribution(rnd)*meanV;
             vx = v * cos(gama);
             vy = v * sin(gama);
             
-            Species p = Species(0, x, y, vx, vy, A*mh);
+            Species p = Species(0, X, Y, vx, vy, A*mh);
             ionsS.push_back(p);
             sputter_born++;
         }
         
     }
+}
+
+void Boundary::TermalConduction() {
+
+    for (int i = 1; i < 9; i++)
+    {
+        temperature[i] = temperature[i] + dt / (dL * dL) * (temperature[i - 1] - 2 * temperature[i] + temperature[i + 1]);
+    }
+
 }
 
 Species::Species(bool ref, double x1, double x2, double v1, double v2, double m)
@@ -269,14 +302,14 @@ int Species::push(double dt)
     x1 = x + vx * dt;
     y1 = y + vy * dt;
 
-    vxn = sgn(vx);
+    //vxn = sgn(vx);
     vyn = sgn(vy);
 
     for (int i = 0; i < bound.size(); i++)
     {
-        d_1 = ((x - x1) * (bound[i].y1 - bound[i].y2) - (y - y1) * (bound[i].x1 - bound[i].x2));
-        d1 = ((x - bound[i].x1) * (bound[i].y1 - bound[i].y2) - (y - bound[i].y1) * (bound[i].x1 - bound[i].x2)) / d_1;
-        d2 = ((x - bound[i].x1) * (y - y1) - (y - bound[i].y1) * (x - x1)) / d_1;
+        d_1 = 1/((x - x1) * (bound[i].dy) - (y - y1) * (bound[i].dx));
+        d1 = ((x - bound[i].x1) * (bound[i].dy) - (y - bound[i].y1) * (bound[i].dx)) * d_1;
+        d2 = ((x - bound[i].x1) * (y - y1) - (y - bound[i].y1) * (x - x1)) * d_1;
 
         if (d1 >= 0 && d1 <= 1 && d2 >= 0 && d2 <= 1)
         {
@@ -303,17 +336,17 @@ int Species::push(double dt)
                 x = XC + ((x1 - XC) * cos2g - (y1 - YC) * sin2g) * 2;//((x1 - XC) * cos2g - (y1 - YC) * sin2g);//0.001 * X * (sinphi * bound[i].cosa - cosphi * bound[i].sina) * sgn(bound[i].alpha);  //Hernya                
                 y = YC + ((x1 - XC) * sin2g + (y1 - YC) * cos2g) * 2;//((x1 - XC) * sin2g + (y1 - YC) * cos2g);//0.001 * Y * (sinphi * bound[i].cosa - cosphi * bound[i].sina);  
 
-                bound[i].Sputter(V2() * mh * 0.5 / ev, x, y, phi);
+                bound[i].Sputter(V2() * mh * 0.5 * ev_1, x, y, phi);
 
                 return i + 1;
 
             }
             else {
 
-                int g = (XC - bound[i].x1) / bound[i].Lx * 10;
+                int g = (XC - bound[i].x1) * bound[i].Lx_1 * 10;
                 if (g > 9) g = 9; else if (g == -2147483648) g = 0;
                 //cout << g << endl;
-                bound[i].diag[g]++;
+                bound[i].diposition[g]++;
                 return -(i + 1);
             }
         }
@@ -381,14 +414,16 @@ void Diagnostics(string path) {
         << ionsS.size() << '\t' 
         << sputter_born  << '\t' 
         << sputter_absorbed << '\t' 
-        << sputter_away << '\t'
-        << (float)sputter_away / (float)beam_born << endl;
+        << sputter_away << endl;
     myfile.close();
 
     myfile.open("diag/diagV.txt");
+
+    float dv = maxV / nv;
+
     for (size_t i = 1; i <= nv; i++)
     {
-        myfile << maxV / nv * i << '\t' << V[i - 1] << endl;
+        myfile << dv * i << '\t' << V[i - 1] << endl;
     }
     myfile << maxV << endl;
     myfile.close();
@@ -398,7 +433,8 @@ void Diagnostics(string path) {
         myfile.open(format("diag/boundary{}.txt", j+1));
         for (size_t i = 0; i < 10; i++)
         {
-            myfile << bound[j].diag[i] << endl;
+            myfile << bound[j].diposition[i] << '\t'
+                   << bound[j].sputtering[i] << endl;
         }
         myfile.close();
     }
@@ -652,12 +688,12 @@ int main(int argv, char** args)
                             else
                                 if (event.key.keysym.sym == SDLK_RIGHT)
                                 {
-                                    delta += pi/32;
+                                    delta += pi * 0.03;
                                 }
                                 else
                                     if (event.key.keysym.sym == SDLK_LEFT)
                                     {
-                                        delta -= pi / 32;
+                                        delta -= pi * 0.03;
                                     }
 
                     }
@@ -670,7 +706,7 @@ int main(int argv, char** args)
             {
                 XB = (xMouse - screenSize[2] - xWindow) * X / (screenSize[0] - screenSize[2]);
                 YB = (screenSize[1] - yMouse + yWindow) * Y / screenSize[1];
-                VB = sqrt(2 * abs(EB) / mh * ev);
+                VB = sqrt(2 * abs(EB) * mh_1 * ev);
                 VX = VB * cosb;
                 VY = VB * sinb;
             }
