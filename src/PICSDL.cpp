@@ -371,7 +371,7 @@ void pushParticles(vector<Species> &part, int type) {
     for (int j = 0; j < part.size(); j++)
     {
         if (part[j].push(dt) < 0) { 
-            swap(part[j], part.back());
+            swap(part[j], part.back()); //ned to check swaped particle
             part.pop_back();
             sputter_absorbed++;//temporary
         }
